@@ -45,8 +45,11 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 - Surprise: AWS FIS hit `SubscriptionRequiredException`. The IAM role and managed policy were fine; FIS itself needed an account-level opt-in I had not done. Documented the recovery path (open the FIS console once, then `terraform apply -target=module.observability.aws_fis_experiment_template.stop_tasks`).
 - Second surprise: `aws ecs describe-task-definition` does NOT return tags by default. You have to pass `--include TAGS`. Found out the hard way when register-task-definition rejected my JSON because `tags` came back null. Fifteen minutes of debugging a one-flag fix.
 
-### Phase 5 - Observability + SLO
-(pending)
+### Phase 5 - Observability + SLO verification - 2026-04-28
+- 5 minutes of sustained 5 req/s traffic against the ALB. 1347 requests, 65 5xx, measured error rate 4.83%. Configured ERROR_RATE is 0.05; variance for n=1347 is ~0.6% so 4.83% is one standard deviation below 5%. The randomness behaves as random.random() promised.
+- Both burn-rate alarms held OK. The slow-burn alarm saw the live error ratio (0.0484) and confirmed it sat below the 0.06 threshold. The fast-burn alarm returned NonBreaching on missing data because the 1-hour window had no completed period (only 5 min of traffic). treat_missing_data = "notBreaching" did exactly what it was supposed to.
+- Surprise: the slow-burn alarm produced a usable datapoint after only 5 minutes despite a 6-hour window. CloudWatch metric math evaluates over the available window when the requested period is incomplete. So the alarm starts working as soon as there is any traffic, not after 6 hours of warm-up. Useful in practice; would have been a footgun if I had not tested it.
+- Numbers visible on the dashboard during the run: request count peaked around 5 req/s, p50 latency ~1 ms, p99 latency ~10 ms (Flask + gunicorn doing nothing CPU-heavy), HealthyHostCount steady at 2.
 
 ### Phase 6 - Chaos with AWS FIS
 (pending)

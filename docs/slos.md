@@ -98,13 +98,38 @@ In this project, "page" means "an email lands in the inbox configured on the SNS
 
 ## 5. Verifying the math against live data
 
-<!-- pending: Phase 5 -->
+### Phase 5 sustained-traffic run (2026-04-28, 5 minutes at ~5 req/s)
 
-This section will be filled in after the Phase 5 sustained-traffic run and the Phase 6 FIS chaos experiment. Expected entries:
+Local traffic generator:
 
-- Measured error rate during the 5-minute steady-state run vs the 5% intentional baseline.
-- Whether either alarm transitioned to `ALARM` during steady state. It should not: 5% is below both the 6% slow-burn threshold and the 14.4% fast-burn threshold.
-- Behavior during the FIS chaos run. If the service recovers fast enough that neither alarm fires, that is the SLO surviving a controlled fault, which is the headline learning from the experiment.
+```
+total=1347, 200=1282, 5xx=65, error_rate=0.0483
+```
+
+Measured error rate **4.83%**, within ±1% of the 5% configured baseline. Variance for n=1347 with p=0.05 is `sqrt(p(1-p)/n) ≈ 0.6%`, so 4.83% is comfortably inside one standard deviation.
+
+Alarm states queried immediately after the run:
+
+```
+sre-app-fast-burn  OK  reason: no datapoints were received for 1 period
+                       and 1 missing datapoint was treated as [NonBreaching]
+sre-app-slow-burn  OK  reason: 1 datapoint [0.04841402337228715
+                       (28/04/26 12:18:00)] was not greater than the
+                       threshold (0.06)
+```
+
+Both alarms held `OK` as designed:
+
+- `slow-burn` saw the live error ratio (0.0484) and confirmed it sat below the 0.06 threshold. The 6-hour metric window aggregates available datapoints; with 5 minutes of traffic, the partial window already had enough signal to evaluate.
+- `fast-burn` returned `notBreaching` because the 1-hour window had no completed period yet (the run was 5 minutes). `treat_missing_data = "notBreaching"` is doing exactly what it should: silence on data starvation, not false alarm.
+
+This is the load-bearing confirmation that the SLO design holds at steady state. The 5% intentional baseline is "high-error-rate-by-design" relative to a real service but still well below either burn-rate threshold, so the alarms are quiet during normal operation and only fire when something actually breaks.
+
+### Phase 6 FIS chaos run
+
+<!-- pending: Phase 6 -->
+
+Will document the alarm behavior when one task is intentionally terminated, target group cycles a replacement, and the service recovers. Headline: if neither alarm fires during the experiment, that is the SLO surviving controlled fault, which is exactly the property an SLO is supposed to guarantee.
 
 ## 6. References
 

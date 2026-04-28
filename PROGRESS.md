@@ -10,7 +10,7 @@ Phase-by-phase log with timestamps. Updated by the orchestrator at every phase b
 | 2 - App + container | completed | 2026-04-28 | 2026-04-28 | phase-2-complete | smoke test 50/50 (46x 200, 4x 500); healthcheck healthy after 15s |
 | 3 - Terraform infra | completed | 2026-04-28 | 2026-04-28 | phase-3-complete | 4 modules + slos.md; plan 47/0/0; apply: 46 created (FIS template blocked on account-opt-in) |
 | 4 - First deploy | completed | 2026-04-28 | 2026-04-28 | phase-4-complete | ECR pushed, TD rev 2 active, service stable 2/2, smoke test 19/20 200s |
-| 5 - Observability + SLO verification | pending | | | | |
+| 5 - Observability + SLO verification | completed | 2026-04-28 | 2026-04-28 | phase-5-complete | 1347 req / 4.83% error rate; both alarms held OK as designed |
 | 6 - Chaos with AWS FIS | pending | | | | headline phase |
 | 7 - CI/CD via OIDC | pending | | | | |
 | 8 - Final docs + LinkedIn | pending | | | | |
