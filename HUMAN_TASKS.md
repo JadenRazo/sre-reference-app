@@ -43,4 +43,14 @@ Default: `JadenRazo/sre-reference-app`, **public**. Already locked in plan; this
 
 ## Resume notes
 
-(If the orchestrator pauses mid-phase, exact next-action notes go here.)
+**Pause point:** End of Phase 2 (2026-04-28). All AWS-independent work is shipped. Resuming requires AWS credentials.
+
+**Next action when AWS is configured:**
+1. Run `aws sts get-caller-identity` to confirm. Tell the orchestrator "AWS is configured."
+2. The orchestrator will then:
+   - Create the $10 CloudWatch billing alarm (us-east-1, since billing metrics live there).
+   - Begin Phase 3: write `infra/{main,variables,outputs,providers}.tf` (top-level wiring), then dispatch 4 `terraform-architect` agents in parallel for `modules/{network,service,observability,cicd}`, plus 1 `technical-writer` for `docs/slos.md`.
+   - Run `terraform init && validate && plan -var "region=us-west-2" -out=tfplan`.
+   - Show you the plan summary and wait for `continue` before Phase 4 apply.
+
+**Cost note (read once):** From the moment `terraform apply` runs, AWS bills NAT gateway (~$0.045/hr), ALB (~$0.025/hr), and Fargate tasks (~$0.04/hr at 0.25 vCPU). About $0.11/hr or ~$2.60/day idle. Ten dollars covers ~3.8 days. Plan to destroy by end of build day unless interview demos are scheduled.
