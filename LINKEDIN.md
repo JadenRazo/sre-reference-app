@@ -51,8 +51,13 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 - Surprise: the slow-burn alarm produced a usable datapoint after only 5 minutes despite a 6-hour window. CloudWatch metric math evaluates over the available window when the requested period is incomplete. So the alarm starts working as soon as there is any traffic, not after 6 hours of warm-up. Useful in practice; would have been a footgun if I had not tested it.
 - Numbers visible on the dashboard during the run: request count peaked around 5 req/s, p50 latency ~1 ms, p99 latency ~10 ms (Flask + gunicorn doing nothing CPU-heavy), HealthyHostCount steady at 2.
 
-### Phase 6 - Chaos with AWS FIS
-(pending)
+### Phase 6 - Chaos via aws ecs stop-task (FIS substituted) - 2026-04-28
+- AWS FIS returned SubscriptionRequiredException on this account (new-account onboarding gate). Substituted aws ecs stop-task for the chaos trigger. Same blast radius, $0 cost, no service-onboarding step. Gated FIS in the terraform module behind enable_fis = false so the project stays clean.
+- Killed one of two running tasks during a sustained 8-min ~5 req/s traffic run.
+- Service recovered in 78 seconds: replacement task started at T+39s, registered with the target group at T+69s, steady state at T+78s.
+- Headline: 4.46% measured error rate during chaos. Lower than the 4.83% Phase 5 baseline. The chaos did not produce a visible 5xx blip. Reason: the surviving task served all traffic cleanly during the 78-second recovery, and the ALB drained the killed task without queueing requests against it (because deregistration_delay was set to 30s, not the AWS default of 300s).
+- Both burn-rate alarms stayed OK. 4.46% < 6% slow-burn threshold and < 14.4% fast-burn threshold.
+- The most useful thing I learned was not "AWS FIS killed a task" or even "the service recovered." It was that the default deregistration_delay is wrong for any service that wants to survive task termination cleanly. Five minutes of in-flight requests against a dying task is enough to push real workloads above their SLO budget. Tuning that one setting from 300 to 30 was the highest-leverage change in the whole module.
 
 ### Phase 7 - CI/CD via OIDC
 (pending)

@@ -125,11 +125,16 @@ Both alarms held `OK` as designed:
 
 This is the load-bearing confirmation that the SLO design holds at steady state. The 5% intentional baseline is "high-error-rate-by-design" relative to a real service but still well below either burn-rate threshold, so the alarms are quiet during normal operation and only fire when something actually breaks.
 
-### Phase 6 FIS chaos run
+### Phase 6 chaos run (2026-04-28, `aws ecs stop-task` against one of two running tasks)
 
-<!-- pending: Phase 6 -->
+Full write-up in `chaos-experiments.md`. Numbers relevant to this doc:
 
-Will document the alarm behavior when one task is intentionally terminated, target group cycles a replacement, and the service recovers. Headline: if neither alarm fires during the experiment, that is the SLO surviving controlled fault, which is exactly the property an SLO is supposed to guarantee.
+- 8-minute run at ~5 req/s, 2154 total requests, 96 5xx, measured error rate **4.46%**.
+- One task killed at T+76s. Service reached steady state (2/2 running) at T+154s. Recovery window was 78 seconds.
+- Both alarms held `OK`. The slow-burn alarm's evaluated datapoint stayed at 0.0484, well below the 0.06 threshold. The fast-burn alarm reported `notBreaching` because the 1-hour window had no completed period over the 8-minute run.
+- The chaos did not push the measured error rate above the steady-state baseline. 4.46% during chaos is in fact slightly below the 4.83% Phase 5 baseline, because the surviving task served traffic cleanly during the 78-second recovery and the ALB drained the killed task gracefully (the 30-second `deregistration_delay` setting is doing real work here, see `chaos-experiments.md` for the analysis).
+
+This is the load-bearing finding: a single-task termination on a 2-task service did not breach the SLO. The infrastructure absorbed the fault, which is exactly what an SLO is supposed to guarantee for a fault of this size.
 
 ## 6. References
 
