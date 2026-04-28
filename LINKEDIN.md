@@ -59,8 +59,11 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 - Both burn-rate alarms stayed OK. 4.46% < 6% slow-burn threshold and < 14.4% fast-burn threshold.
 - The most useful thing I learned was not "AWS FIS killed a task" or even "the service recovered." It was that the default deregistration_delay is wrong for any service that wants to survive task termination cleanly. Five minutes of in-flight requests against a dying task is enough to push real workloads above their SLO budget. Tuning that one setting from 300 to 30 was the highest-leverage change in the whole module.
 
-### Phase 7 - CI/CD via OIDC
-(pending)
+### Phase 7 - CI/CD via OIDC, no static AWS keys - 2026-04-28
+- The deploy.yml workflow assumes an IAM role via GitHub's OIDC provider. There is no AWS_ACCESS_KEY_ID stored in the repo, in GitHub Secrets, or anywhere on the runner. GitHub mints a short-lived OIDC token for each run, AWS verifies it against the federated trust policy, and returns 1-hour STS credentials.
+- The trust policy on the role (modules/cicd/main.tf) is scoped via StringLike on token.actions.githubusercontent.com:sub to repo:JadenRazo/sre-reference-app:*. A fork or an unrelated repo cannot assume this role even with a copy of the workflow.
+- The deploy role's permissions are scoped, not wildcarded. iam:PassRole is locked to exactly the two ECS task role ARNs and conditioned on iam:PassedToService=ecs-tasks.amazonaws.com so the role cannot hand those task roles to a Lambda or EC2 instance. ECR push is scoped to the project repo. ecs:UpdateService is scoped to the project service.
+- The most useful interview signal here is not "I used GitHub Actions." It is the absence of secrets. Every static-key CI/CD pipeline I have ever audited had a stale, over-privileged access key buried in repo secrets. OIDC removes the failure mode by removing the artifact.
 
 ## Final drafts
 

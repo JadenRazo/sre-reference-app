@@ -1,0 +1,125 @@
+# Build the app container, push to ECR, register a new ECS task definition
+# revision, update the service, and wait for it to reach steady state.
+#
+# Every credential here is short-lived and account-scoped to this repo:
+# the workflow assumes an IAM role via GitHub OIDC. There is no
+# AWS_ACCESS_KEY_ID stored anywhere. The trust policy on the role (in
+# infra/modules/cicd/main.tf) scopes the StringLike :sub condition to
+# repo:JadenRazo/sre-reference-app:* so a fork or unrelated repo cannot
+# assume the role even with a leaked workflow file.
+#
+# All the env values below are public AWS resource identifiers, not
+# secrets. The role ARN is safe to commit because it is useless without
+# the OIDC trust policy that gates assumption.
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  AWS_DEPLOY_ROLE_ARN: arn:aws:iam::569239324174:role/sre-app-gh-deploy
+  ECR_REPOSITORY: sre-app
+  ECS_CLUSTER: sre-app-cluster
+  ECS_SERVICE: sre-app
+  TASK_FAMILY: sre-app
+  CONTAINER_NAME: sre-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm assumed identity
+        run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push container image
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build \
+            --tag "$IMAGE" \
+            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            ./app
+          docker push "$IMAGE"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Render new task definition revision
+        id: render
+        env:
+          NEW_IMAGE: ${{ steps.image.outputs.image }}
+        run: |
+          # describe-task-definition omits tags by default; --include TAGS
+          # is required so the FIS-Target tag survives the round-trip.
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --include TAGS \
+            --query taskDefinition > taskdef.json
+
+          TAGS_JSON=$(aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --include TAGS \
+            --query 'tags' --output json)
+
+          jq --arg img "$NEW_IMAGE" --argjson tags "$TAGS_JSON" '
+            .containerDefinitions[0].image = $img |
+            {family, networkMode, cpu, memory, requiresCompatibilities, executionRoleArn, taskRoleArn, containerDefinitions} +
+            (if ($tags | length) > 0 then {tags: $tags} else {} end)
+          ' taskdef.json > taskdef-new.json
+
+          NEW_TD_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://taskdef-new.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_definition_arn=$NEW_TD_ARN" >> "$GITHUB_OUTPUT"
+          echo "Registered $NEW_TD_ARN"
+
+      - name: Update ECS service
+        env:
+          NEW_TD: ${{ steps.render.outputs.task_definition_arn }}
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$NEW_TD" \
+            --force-new-deployment \
+            --query 'service.{taskDef:taskDefinition,desired:desiredCount}' \
+            --output table
+
+      - name: Wait for service stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+          aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].{td:taskDefinition,running:runningCount,desired:desiredCount}' \
+            --output table
