@@ -38,9 +38,17 @@ from diagrams.onprem.vcs import Github
 GRAPH = {
     "fontname": "Helvetica-Bold",
     "fontsize": "22",
-    "splines": "polyline",
-    "nodesep": "1.1",
-    "ranksep": "1.6",
+    # spline = smooth Bezier curves. Routes edges AROUND obstacles instead
+    # of through them, which kills the label-collision problem polyline had.
+    # forcelabels=true keeps xlabels visible even when they would otherwise
+    # be suppressed for overlap; concentrate=false avoids merging parallel
+    # edges that share endpoints (we want each labeled edge distinct).
+    "splines": "spline",
+    "overlap": "false",
+    "forcelabels": "true",
+    "concentrate": "false",
+    "nodesep": "1.2",
+    "ranksep": "1.8",
     "pad": "1.4",
     "bgcolor": "white",
     "dpi": "200",
