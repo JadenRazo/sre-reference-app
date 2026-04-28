@@ -46,6 +46,20 @@ Default: `JadenRazo/sre-reference-app`, **public**. Already locked in plan; this
 
 ---
 
+### [Phase 6/7] Three remaining screenshots
+**Status:** pending. The README references all three by filename; once you drop the files in, the README starts rendering them.
+
+| File | URL / source |
+|---|---|
+| `screenshots/06-chaos-task-stopping.png` | ECS console -> sre-app-cluster -> Tasks (Stopped tab) -> task `218ed9d99bee4b019b7dce71c36127a5`, OR the local terminal output of the `aws ecs stop-task` call |
+| `screenshots/07-dashboard-during-chaos.png` | https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#dashboards:name=sre-app-dashboard - set 1h time range, capture the recovery curve around 18:37-18:39 UTC. **Time-sensitive.** |
+| `screenshots/08-github-actions-success.png` | https://github.com/JadenRazo/sre-reference-app/actions/runs/25071971120 - successful run with 13 green steps |
+
+### [Phase 9] Cleanup decision
+**Status:** pending. Reply `destroy` or `keep` and the orchestrator will run the cleanup or post a daily run-rate reminder.
+
+---
+
 ## Resume notes
 
 **Pause point:** End of Phase 2 (2026-04-28). All AWS-independent work is shipped. Resuming requires AWS credentials.

@@ -70,10 +70,53 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 (Synthesized in Phase 8.)
 
 ### Draft 1: Long-form chaos story
-(pending)
+
+Killed one of two ECS Fargate tasks mid-traffic. The error rate during chaos was 4.46%. Baseline before chaos was 4.83%.
+
+The chaos run was quieter than the steady state. That was not the result I expected.
+
+Setup: two-task service behind an ALB, sustained ~5 req/s, app returns 500 on 5% of requests by design so the SLO alarms have signal. AWS FIS was the original plan, but the account hit SubscriptionRequiredException on a new-account onboarding gate. Substituted aws ecs stop-task. Same blast radius, $0 cost, no service-onboarding step.
+
+Recovery numbers from CloudWatch:
+- T+0: task killed
+- T+39s: replacement task started
+- T+69s: registered with target group
+- T+78s: steady state, two healthy targets
+
+Both burn-rate alarms stayed OK the entire run. 4.46% sat below the 6% slow-burn threshold and the 14.4% fast-burn threshold.
+
+The reason the chaos did not produce a visible 5xx blip was not "ECS recovered fast." It was deregistration_delay = 30. The AWS default is 300 seconds. Five minutes of in-flight requests draining against a dying task is enough to push real workloads above their SLO budget on a single bad deploy. Tuning that one setting was the highest-leverage change in the whole module.
+
+The surviving task served all traffic cleanly during the 78-second window. The ALB drained the killed task without queueing requests against it. The chaos was invisible to the SLO.
+
+Repo: github.com/JadenRazo/sre-reference-app
 
 ### Draft 2: OIDC takeaway
-(pending)
+
+Every static-key CI/CD pipeline I have ever audited had a stale, over-privileged AWS access key buried in repo secrets. OIDC removes the failure mode by removing the artifact.
+
+Build I just shipped:
+- 0 secrets in the repo
+- 0 secrets in GitHub Secrets
+- 1 IAM role, trust policy scoped via StringLike on the OIDC sub claim to repo:JadenRazo/sre-reference-app:*
+
+GitHub mints a short-lived token per run. AWS verifies it and returns 1-hour STS credentials. A fork cannot assume the role even with a copy of the workflow.
+
+The signal is not "I used GitHub Actions." It is the absence of an artifact that can leak.
+
+github.com/JadenRazo/sre-reference-app
 
 ### Draft 3: Numbered build-log list
-(pending)
+
+8 things I built into a public SRE reference app this week:
+
+1. ECS Fargate service that survives a 1-task termination in 78 seconds, end to end (kill at T+0, steady state at T+78s).
+2. ALB target group with deregistration_delay = 30, not the AWS default of 300. The single highest-leverage setting for SLO survival during deploys and chaos.
+3. Multi-window multi-burn-rate (MWMBR) alarms sized per Google SRE Workbook Table 5-1: 14.4x fast-burn over 5m/1h, 6x slow-burn over 30m/6h.
+4. 0 AWS credentials anywhere thanks to GitHub OIDC. No access keys in the repo, in Secrets, or on the runner.
+5. iam:PassRole scoped to two specific task role ARNs and conditioned on iam:PassedToService=ecs-tasks.amazonaws.com so a compromised deploy role cannot hand task roles to a Lambda.
+6. Structured JSON logs with request_id, duration_ms, remote_addr. One log format per service, gunicorn access log disabled to avoid duplicates.
+7. Chaos via aws ecs stop-task because AWS FIS hit SubscriptionRequiredException on a new account. Same blast radius, $0 cost.
+8. Measured 4.46% error rate during chaos vs 4.83% baseline. The chaos was invisible to the SLO.
+
+github.com/JadenRazo/sre-reference-app
