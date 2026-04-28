@@ -34,11 +34,16 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 - Surprise: my first JsonFormatter used `self.formatTime(record, "%Y-%m-%dT%H:%M:%S.%fZ")` and shipped literal `.%fZ` in every timestamp because Python's logging.Formatter uses `time.strftime` which doesn't expand `%f`. Switched to `datetime.fromtimestamp(record.created, tz=timezone.utc)`. Lesson: structured logs are only as good as the parser that reads them; CloudWatch Logs Insights would have failed silently on the malformed ISO timestamps.
 - Second surprise: gunicorn's default access log was duplicating my Flask after_request JSON logs in plain text. Removed `--access-logfile -`, kept only the structured stream. One log format per service is a real rule, not a stylistic preference.
 
-### Phase 3 - Terraform infra
-(pending)
+### Phase 3 - Terraform infra - 2026-04-28
+- 4 modules (network, service, observability, cicd) authored in parallel by 4 dispatched agents. Each module has a locked input/output contract; agents work against the contract, not against each other.
+- terraform plan: 47 resources to add. Validate clean. fmt clean.
+- Surprise: writing the cicd module was the most security-thinking-heavy part. The deploy role's PassRole permission has to be scoped to exactly the two ECS task role ARNs AND conditioned on iam:PassedToService=ecs-tasks.amazonaws.com. Without the condition, anyone who pwns the role can hand those task roles to a Lambda or EC2 instance they control.
 
-### Phase 4 - First deploy
-(pending)
+### Phase 4 - First deploy - 2026-04-28
+- terraform apply: 56 of 57 non-data resources created in 3m22s. ALB took 3m22s alone (the standard ALB provisioning latency). Fargate tasks came up on the public nginx placeholder, then we registered a new task definition revision pointing to the real ECR image and called update-service --force-new-deployment.
+- Smoke test from local laptop: 20 requests, 19x 200, 1x 500. Exactly the 5% baseline error rate `random.random() < 0.05` should produce. JSON logs land in CloudWatch with full request_id, duration_ms, and remote_addr fields.
+- Surprise: AWS FIS hit `SubscriptionRequiredException`. The IAM role and managed policy were fine; FIS itself needed an account-level opt-in I had not done. Documented the recovery path (open the FIS console once, then `terraform apply -target=module.observability.aws_fis_experiment_template.stop_tasks`).
+- Second surprise: `aws ecs describe-task-definition` does NOT return tags by default. You have to pass `--include TAGS`. Found out the hard way when register-task-definition rejected my JSON because `tags` came back null. Fifteen minutes of debugging a one-flag fix.
 
 ### Phase 5 - Observability + SLO
 (pending)
