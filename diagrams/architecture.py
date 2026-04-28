@@ -21,17 +21,24 @@ from diagrams.aws.security import IAMRole, IdentityAndAccessManagementIam
 from diagrams.onprem.client import Users
 from diagrams.onprem.vcs import Github
 
+# dpi=200 doubles graphviz's 96-default raster resolution, which is what
+# makes the labels actually readable when GitHub scales the PNG down to
+# the README column width. Without this, fontsize 18 still rendered as
+# unreadable 6-8 pixel text on a 960px-wide column.
+#
+# Larger fontsize + bold + extra nodesep give the text room to breathe.
 GRAPH = {
-    "fontname": "Helvetica",
-    "fontsize": "14",
+    "fontname": "Helvetica-Bold",
+    "fontsize": "20",
     "splines": "ortho",
-    "nodesep": "0.6",
-    "ranksep": "0.9",
-    "pad": "0.4",
+    "nodesep": "0.9",
+    "ranksep": "1.4",
+    "pad": "1.2",
     "bgcolor": "white",
+    "dpi": "200",
 }
-NODE = {"fontname": "Helvetica", "fontsize": "12"}
-EDGE = {"fontname": "Helvetica", "fontsize": "10"}
+NODE = {"fontname": "Helvetica-Bold", "fontsize": "18"}
+EDGE = {"fontname": "Helvetica", "fontsize": "15"}
 
 # ---------------------------------------------------------------------------
 # Diagram 1: runtime / request path
@@ -105,17 +112,17 @@ with Diagram(
     edge_attr=EDGE,
 ):
     with Cluster("GitHub", graph_attr={"bgcolor": "#F6F8FA"}):
-        repo = Github("JadenRazo/sre-reference-app\nmain branch")
-        actions = Codebuild(".github/workflows/\ndeploy.yml")
+        repo = Github("JadenRazo /\nsre-reference-app\n(main)")
+        actions = Codebuild("Actions runner\ndeploy.yml")
 
     with Cluster("AWS account 569239324174 / us-west-2", graph_attr={"bgcolor": "#FAFAFC"}):
         with Cluster("IAM (federated)", graph_attr={"bgcolor": "#F0F4FA"}):
             oidc = IdentityAndAccessManagementIam(
-                "OIDC provider\ntoken.actions.githubusercontent.com"
+                "OIDC provider\nGitHub Actions"
             )
             role = IAMRole(
-                "sre-app-gh-deploy\ntrust: repo:JadenRazo/sre-reference-app:*\n"
-                "PassRole scoped to ecs-tasks"
+                "sre-app-gh-deploy\ntrust scoped to repo\n"
+                "PassRole locked to ECS"
             )
 
         ecr = EC2ContainerRegistry("ECR\nsre-app:<commit-sha>")
@@ -124,10 +131,10 @@ with Diagram(
             cluster = ElasticContainerService("sre-app-cluster")
             new_rev = Fargate("Task def rev N+1\nFIS-Target = true")
 
-    repo >> Edge(label="push to main\n(paths: app/**, .github/workflows/deploy.yml)", color="#1F6FEB") >> actions
-    actions >> Edge(label="OIDC token\n(no static keys)", color="#1F6FEB", penwidth="2") >> oidc
-    oidc >> Edge(label="sts:AssumeRoleWithWebIdentity") >> role
-    role >> Edge(label="docker build + push\n:commit-sha, :latest", color="#2EA043") >> ecr
-    role >> Edge(label="register-task-definition\nupdate-service\nwait services-stable", color="#2EA043") >> cluster
+    repo >> Edge(label="push to main", color="#1F6FEB") >> actions
+    actions >> Edge(label="OIDC token\nno static keys", color="#1F6FEB", penwidth="2") >> oidc
+    oidc >> Edge(label="AssumeRoleWithWebIdentity") >> role
+    role >> Edge(label="docker push\n:commit-sha + :latest", color="#2EA043") >> ecr
+    role >> Edge(label="register task def\nupdate-service", color="#2EA043") >> cluster
     ecr >> Edge(style="dashed", label="image pull", color="#6E7B91") >> new_rev
     cluster >> Edge(label="rollout") >> new_rev
