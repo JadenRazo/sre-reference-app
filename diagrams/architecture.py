@@ -67,6 +67,12 @@ NODE = {
 EDGE = {
     "fontname": "Helvetica-Bold",
     "fontsize": "15",
+    # Force edges to exit east (right) of source and enter west (left) of
+    # target. In LR layout with labels rendered south of icons, this keeps
+    # edge routes inside the icon row and never through label text.
+    # Per-edge overrides below where vertical flow makes more sense.
+    "tailport": "e",
+    "headport": "w",
 }
 
 # ---------------------------------------------------------------------------
@@ -125,8 +131,9 @@ with Diagram(
     user >> Edge(label="HTTP :80", color="#1F6FEB", penwidth="3", fontcolor="#1F6FEB") >> alb
     alb >> Edge(label=":8080  /health 15s", color="#1F6FEB", penwidth="2") >> tasks
 
-    # Egress + logs (gray dashed) - only one task connects each to keep edges sparse
-    tasks[0] >> Edge(label="egress", style="dashed", color="#6E7B91") >> nat
+    # Egress goes upward from task to NAT (within the VPC), so the default
+    # east/west port hints would force a long detour. Clear them here.
+    tasks[0] >> Edge(label="egress", style="dashed", color="#6E7B91", tailport="", headport="") >> nat
     tasks[1] >> Edge(label="JSON logs", style="dashed", color="#6E7B91") >> logs
 
     # Single metrics edge from ALB into the Observability cluster.
