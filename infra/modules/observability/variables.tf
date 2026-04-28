@@ -1,0 +1,54 @@
+variable "name_prefix" {
+  description = "Prefix for resource names (dashboard, alarms, SNS topic, FIS template)."
+  type        = string
+}
+
+variable "region" {
+  description = "AWS region. Used to build the dashboard console URL."
+  type        = string
+}
+
+variable "alarm_email" {
+  description = "Email address subscribed to the SLO alert SNS topic. Subscription stays in pending state until the recipient clicks the AWS confirmation link."
+  type        = string
+}
+
+variable "slo_target" {
+  description = "Availability SLO target as a fraction. Burn-rate alarm thresholds are computed from (1 - slo_target) * burn_rate."
+  type        = number
+  default     = 0.99
+  validation {
+    condition     = var.slo_target > 0.9 && var.slo_target < 1.0
+    error_message = "slo_target must be between 0.9 and 1.0 (exclusive)."
+  }
+}
+
+variable "alb_arn_suffix" {
+  description = "ALB ARN suffix (e.g. app/sre-app-alb/abc123) used in CloudWatch metric dimensions."
+  type        = string
+}
+
+variable "target_group_arn_suffix" {
+  description = "Target group ARN suffix used in CloudWatch metric dimensions."
+  type        = string
+}
+
+variable "ecs_cluster_name" {
+  description = "ECS cluster name. Used in dashboard metric dimensions."
+  type        = string
+}
+
+variable "ecs_service_name" {
+  description = "ECS service name. Used in dashboard metric dimensions."
+  type        = string
+}
+
+variable "ecs_cluster_arn" {
+  description = "ECS cluster ARN. FIS targets are scoped to this cluster via the experiment template's parameters block."
+  type        = string
+}
+
+variable "log_group_name" {
+  description = "CloudWatch log group name. Reserved for future Logs Insights widget on the dashboard."
+  type        = string
+}
