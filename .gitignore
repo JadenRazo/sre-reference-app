@@ -1,0 +1,49 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+tfplan
+tfplan.binary
+*.tfvars
+!example.tfvars
+crash.log
+crash.*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets (defense in depth)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+aws_access_key_id
+aws_secret_access_key
+credentials
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Build artifacts
+dist/
+build/
+*.egg
+
+# Local testing
+.coverage
+htmlcov/
