@@ -50,3 +50,7 @@ resource "aws_iam_role" "deploy" {
   name               = "${var.name_prefix}-gh-deploy"
   assume_role_policy = data.aws_iam_policy_document.deploy_assume.json
 }
+
+data "aws_partition" "current" {}
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}

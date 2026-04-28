@@ -50,6 +50,17 @@ data "aws_iam_policy_document" "ecs_deploy" {
     resources = ["*"]
   }
 
+  # register-task-definition counts as a TagResource action when the call
+  # passes tags, which the deploy workflow does to preserve FIS-Target.
+  # Scope tightly to revisions of THIS family, not all task definitions.
+  statement {
+    sid     = "ECSTagTaskDef"
+    actions = ["ecs:TagResource", "ecs:UntagResource"]
+    resources = [
+      "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${var.task_definition_family}:*",
+    ]
+  }
+
   statement {
     sid       = "ECSTasks"
     actions   = ["ecs:ListTasks", "ecs:DescribeTasks"]
