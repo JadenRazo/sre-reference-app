@@ -58,6 +58,12 @@ variable "container_image" {
   default     = "public.ecr.aws/nginx/nginx:stable-perl"
 }
 
+variable "enable_fis" {
+  description = "Whether to provision the AWS FIS experiment template and its IAM role. Some account states reject FIS API calls with SubscriptionRequiredException. When false, the chaos phase uses `aws ecs stop-task` directly (same effect: one task terminated, service auto-recovers)."
+  type        = bool
+  default     = true
+}
+
 variable "slo_target" {
   description = "Availability SLO target as a fraction. 0.99 = 99 percent. The burn-rate alarms compute their thresholds from this."
   type        = number

@@ -26,6 +26,7 @@ module "observability" {
   region                  = var.region
   alarm_email             = var.alarm_email
   slo_target              = var.slo_target
+  enable_fis              = var.enable_fis
   alb_arn_suffix          = module.service.alb_arn_suffix
   target_group_arn_suffix = module.service.target_group_arn_suffix
   ecs_cluster_name        = module.service.ecs_cluster_name

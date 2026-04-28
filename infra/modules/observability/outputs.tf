@@ -19,6 +19,6 @@ output "sns_alarm_topic_arn" {
 }
 
 output "fis_experiment_template_id" {
-  description = "FIS experiment template ID. Start the experiment via aws fis start-experiment --experiment-template-id ... or from the console."
-  value       = aws_fis_experiment_template.stop_tasks.id
+  description = "FIS experiment template ID. Null when enable_fis = false (this account lacks FIS access). Start the experiment via aws fis start-experiment --experiment-template-id ... or from the console when populated."
+  value       = var.enable_fis ? aws_fis_experiment_template.stop_tasks[0].id : null
 }

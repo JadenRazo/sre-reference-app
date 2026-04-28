@@ -33,19 +33,10 @@ Steps:
 
 Default: `JadenRazo/sre-reference-app`, **public**. Already locked in plan; this gate exists only for last-minute change. If keeping default, no action needed.
 
-### [Phase 3/6] Enable AWS FIS in this account (one-time)
-**Blocking:** Phase 6 chaos experiment (does NOT block Phase 4 deploy or Phase 5 observability).
+### [Phase 3/6] AWS FIS unavailable on this account - resolved by substitution
+**Status:** resolved.
 
-The first `terraform apply` failed on `aws_fis_experiment_template.stop_tasks` with `SubscriptionRequiredException: The AWS Access Key Id needs a subscription for the service`. AWS FIS requires a one-time account opt-in that happens automatically when you visit the FIS console.
-
-Steps:
-1. Open https://us-west-2.console.aws.amazon.com/fis/home?region=us-west-2
-2. Read the welcome page and click any "Get started" / "Continue" button. The act of loading the console accepts the FIS service terms for this account.
-3. Tell the orchestrator "FIS is enabled" and it will run:
-   ```
-   cd /root/sre-reference-app/infra && terraform apply -target=module.observability.aws_fis_experiment_template.stop_tasks
-   ```
-   That single-resource apply finishes in ~5 seconds and the project is back on track for Phase 6.
+`aws_fis_experiment_template.stop_tasks` failed with `SubscriptionRequiredException` on first apply. Rather than blocking the build on a one-time AWS account opt-in (or paying for a support ticket), the project switched to `aws ecs stop-task` for the chaos trigger. Same blast radius, same recovery curve, $0 cost, no onboarding gate. The terraform module gates the FIS resources behind `var.enable_fis` (set to `false` in `terraform.tfvars`). Flip to `true` and re-apply if FIS becomes available later.
 
 ---
 

@@ -9,6 +9,7 @@ data "aws_iam_policy_document" "fis_assume" {
 }
 
 resource "aws_iam_role" "fis" {
+  count              = var.enable_fis ? 1 : 0
   name               = "${var.name_prefix}-fis"
   assume_role_policy = data.aws_iam_policy_document.fis_assume.json
 }
@@ -17,6 +18,7 @@ resource "aws_iam_role" "fis" {
 # call ECS APIs (StopTask, DescribeTasks, etc.). Documented at
 # https://docs.aws.amazon.com/fis/latest/userguide/security-iam-awsmanpol.html
 resource "aws_iam_role_policy_attachment" "fis_ecs" {
-  role       = aws_iam_role.fis.name
+  count      = var.enable_fis ? 1 : 0
+  role       = aws_iam_role.fis[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSFaultInjectionSimulatorECSAccess"
 }

@@ -1,6 +1,7 @@
 resource "aws_fis_experiment_template" "stop_tasks" {
+  count       = var.enable_fis ? 1 : 0
   description = "Terminate one ECS task tagged FIS-Target=true. Verifies SLO survival under controlled chaos."
-  role_arn    = aws_iam_role.fis.arn
+  role_arn    = aws_iam_role.fis[0].arn
 
   action {
     name      = "stop-one-task"
