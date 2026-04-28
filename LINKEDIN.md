@@ -28,8 +28,11 @@ Phase-by-phase notes for later synthesis. Each entry is rough; the writer agent 
 - The enforcement mechanism itself is a teachable moment: the reviewer agent greps for em dashes and banned phrases on every commit. If you can't grep for it, you can't enforce it.
 - Surprise: writing the agent prompts forced me to articulate banned phrases I'd been letting slide for years in my own writing.
 
-### Phase 2 - App + container
-(pending)
+### Phase 2 - App + container - 2026-04-28
+- Flask app + gunicorn behind a python:3.12-slim image. Two endpoints: `/health` always 200, `/` returns 500 with probability ERROR_RATE (default 0.05) so the SLO alarms have signal.
+- Smoke test: 50 requests, 46x 200, 4x 500 (8% baseline, within expected variance for n=50).
+- Surprise: my first JsonFormatter used `self.formatTime(record, "%Y-%m-%dT%H:%M:%S.%fZ")` and shipped literal `.%fZ` in every timestamp because Python's logging.Formatter uses `time.strftime` which doesn't expand `%f`. Switched to `datetime.fromtimestamp(record.created, tz=timezone.utc)`. Lesson: structured logs are only as good as the parser that reads them; CloudWatch Logs Insights would have failed silently on the malformed ISO timestamps.
+- Second surprise: gunicorn's default access log was duplicating my Flask after_request JSON logs in plain text. Removed `--access-logfile -`, kept only the structured stream. One log format per service is a real rule, not a stylistic preference.
 
 ### Phase 3 - Terraform infra
 (pending)
