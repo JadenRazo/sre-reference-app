@@ -2,6 +2,14 @@ resource "aws_ecr_repository" "app" {
   name                 = var.name_prefix
   image_tag_mutability = "MUTABLE"
 
+  # force_delete = true lets terraform destroy clean up the repo even when
+  # images are still present. Without this, the first destroy fails because
+  # ECR refuses to delete a non-empty repo and the operator has to run
+  # `aws ecr batch-delete-image` by hand. Acceptable for a personal demo
+  # repo; in a real production setup you'd leave this false to prevent
+  # accidental teardown of production images.
+  force_delete = true
+
   image_scanning_configuration {
     scan_on_push = true
   }

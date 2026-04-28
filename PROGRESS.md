@@ -14,4 +14,4 @@ Phase-by-phase log with timestamps. Updated by the orchestrator at every phase b
 | 6 - Chaos via aws ecs stop-task | completed | 2026-04-28 | 2026-04-28 | phase-6-complete | 78s recovery, 4.46% error rate during chaos vs 4.83% baseline, alarms OK |
 | 7 - CI/CD via OIDC | completed | 2026-04-28 | 2026-04-28 | phase-7-complete | run 25071971120 succeeded 3m49s; first run failed on missing ecs:TagResource, fixed and rerun |
 | 8 - Final docs + LinkedIn | completed | 2026-04-28 | 2026-04-28 | phase-8-complete | runbook, post-mortem template, architecture (with Mermaid), final README, 3 LinkedIn drafts |
-| 9 - Cleanup decision | pending | | | | |
+| 9 - Cleanup decision | completed | 2026-04-28 | 2026-04-28 | phase-9-complete | terraform destroy clean (after emptying ECR), force_delete=true patched in for future, pro arch diagrams shipped |

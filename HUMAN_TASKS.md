@@ -56,7 +56,7 @@ Default: `JadenRazo/sre-reference-app`, **public**. Already locked in plan; this
 | `screenshots/08-github-actions-success.png` | https://github.com/JadenRazo/sre-reference-app/actions/runs/25071971120 - successful run with 13 green steps |
 
 ### [Phase 9] Cleanup decision
-**Status:** pending. Reply `destroy` or `keep` and the orchestrator will run the cleanup or post a daily run-rate reminder.
+**Status:** done. `terraform destroy` ran clean on 2026-04-28 after emptying the ECR repo. `force_delete = true` patched into the ECR module so future destroys are one-step.
 
 ---
 

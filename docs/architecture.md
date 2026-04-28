@@ -4,70 +4,17 @@ This is a 2-task Flask service running on ECS Fargate behind an ALB in `us-west-
 
 ## 1. Diagram
 
-```mermaid
-graph LR
-    Internet([Internet])
+Two diagrams, one story each. Generated from `diagrams/architecture.py` (mingrammer/diagrams + AWS official icon set). Regenerate with `cd diagrams && .venv/bin/python architecture.py`.
 
-    subgraph GitHub["GitHub"]
-        Repo[JadenRazo/sre-reference-app]
-        Actions[GitHub Actions<br/>deploy.yml]
-    end
+### 1a. Runtime: where requests, logs, and metrics flow
 
-    subgraph AWS["AWS account 569239324174 / us-west-2"]
+![Runtime architecture](architecture-runtime.png)
 
-        subgraph IAM["IAM"]
-            OIDC[GitHub OIDC provider<br/>token.actions.githubusercontent.com]
-            DeployRole[sre-app-gh-deploy role<br/>sub StringLike repo:JadenRazo/sre-reference-app:*<br/>iam:PassRole locked to ecs-tasks]
-        end
+### 1b. Deploy pipeline: how a `git push` reaches a running task
 
-        ECR[(ECR sre-app<br/>scan_on_push true<br/>keep last 10 images)]
+![Deploy pipeline](architecture-deploy.png)
 
-        subgraph VPC["VPC 10.0.0.0/16"]
-
-            subgraph Public["Public subnets 10.0.1.0/24 + 10.0.2.0/24 / 2 AZs"]
-                ALB[ALB sre-app-alb<br/>HTTP :80<br/>deregistration_delay 30s]
-                NAT[NAT gateway<br/>single, AZ-a]
-            end
-
-            subgraph Private["Private subnets 10.0.10.0/24 + 10.0.20.0/24 / 2 AZs"]
-                Task1[Fargate task 1<br/>256 CPU / 512 MB<br/>FIS-Target true]
-                Task2[Fargate task 2<br/>256 CPU / 512 MB<br/>FIS-Target true]
-            end
-        end
-
-        Logs[/ecs/sre-app log group<br/>7-day retention/]
-        Dashboard[CloudWatch dashboard<br/>6 widgets]
-        FastBurn[Alarm sre-app-fast-burn<br/>1h / 14.4x]
-        SlowBurn[Alarm sre-app-slow-burn<br/>6h / 6x]
-        SNS[SNS topic sre-app-slo-alerts]
-        Email([alarm_email inbox])
-
-    end
-
-    Internet --> ALB
-    ALB --> Task1
-    ALB --> Task2
-    Task1 --> NAT
-    Task2 --> NAT
-    NAT --> Internet
-    Task1 --> Logs
-    Task2 --> Logs
-    Logs -.-> Dashboard
-    ALB -.-> Dashboard
-    ALB -.-> FastBurn
-    ALB -.-> SlowBurn
-    FastBurn --> SNS
-    SlowBurn --> SNS
-    SNS --> Email
-
-    Repo --> Actions
-    Actions -- AssumeRoleWithWebIdentity --> OIDC
-    OIDC --> DeployRole
-    DeployRole -- docker push --> ECR
-    DeployRole -- update-service --> Task1
-    ECR -. image pull via NAT .-> Task1
-    ECR -. image pull via NAT .-> Task2
-```
+The deploy diagram is the security-relevant one. The blue OIDC path replaces what would otherwise be an `AWS_ACCESS_KEY_ID` in GitHub Secrets; the green action edges show the role's narrowly scoped permissions in flight (`docker push` to one ECR repo, `update-service` to one ECS service, `iam:PassRole` locked to `ecs-tasks.amazonaws.com`).
 
 ## 2. Components
 

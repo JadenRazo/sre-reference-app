@@ -15,59 +15,15 @@ A Flask service deployed to AWS ECS Fargate that survived a controlled task term
 
 ## Architecture
 
-```mermaid
-graph TB
-    subgraph Internet
-        User[User / curl]
-        GH[GitHub Actions]
-    end
+The runtime architecture: where requests go, where logs and metrics flow, which alarms fire on what.
 
-    subgraph "AWS account 569239324174 / us-west-2"
-        subgraph "VPC 10.0.0.0/16"
-            subgraph "Public subnets (2 AZs)"
-                ALB[Application Load Balancer<br/>HTTP :80]
-                NAT[NAT Gateway]
-            end
+![Runtime architecture](docs/architecture-runtime.png)
 
-            subgraph "Private subnets (2 AZs)"
-                T1[ECS Fargate task 1<br/>256 CPU / 512 MB]
-                T2[ECS Fargate task 2<br/>256 CPU / 512 MB]
-            end
-        end
+The deploy pipeline: how a `git push` reaches a running task, with no static AWS keys anywhere on the path.
 
-        subgraph Observability
-            CW[CloudWatch Logs<br/>/ecs/sre-app]
-            DASH[CloudWatch Dashboard<br/>sre-app-dashboard]
-            FB[Alarm: fast-burn<br/>1h, 14.4% threshold]
-            SB[Alarm: slow-burn<br/>6h, 6% threshold]
-            SNS[SNS topic<br/>email subscriber]
-        end
+![Deploy pipeline](docs/architecture-deploy.png)
 
-        ECR[ECR repository<br/>sre-app]
-        OIDC[IAM OIDC provider<br/>token.actions.githubusercontent.com]
-        ROLE[IAM role: sre-app-gh-deploy<br/>trust scoped to repo:JadenRazo/sre-reference-app:*]
-    end
-
-    User -->|HTTP :80| ALB
-    ALB -->|target group<br/>30s deregistration_delay| T1
-    ALB -->|"health check / 15s"| T2
-    T1 -->|JSON logs| CW
-    T2 -->|JSON logs| CW
-    T1 -->|egress via NAT<br/>image pull| ECR
-    T2 -->|egress via NAT| ECR
-    CW --> DASH
-    CW -.->|metric filter| FB
-    CW -.->|metric filter| SB
-    FB --> SNS
-    SB --> SNS
-
-    GH -->|OIDC token| OIDC
-    OIDC -->|sts:AssumeRoleWithWebIdentity| ROLE
-    ROLE -->|push image| ECR
-    ROLE -->|register TD, update service| T1
-```
-
-Full architecture writeup with module-by-module breakdown lives in `docs/architecture.md`.
+Diagrams are generated from `diagrams/architecture.py` (mingrammer/diagrams + AWS official icon set). Regenerate with `cd diagrams && .venv/bin/python architecture.py`. Module-by-module writeup lives in `docs/architecture.md`.
 
 ## SLO and alarm summary
 
@@ -229,6 +185,10 @@ cd infra && terraform destroy
 ```
 
 Confirm a clean destroy with `aws ecs list-clusters` (returns `[]`) and `aws ec2 describe-vpcs --filters Name=tag:Project,Values=sre-app` (returns no VPC).
+
+## Status
+
+**Torn down.** The AWS resources were destroyed on 2026-04-28 after Phase 9. The repo, screenshots, and tags remain as the artifact. Re-apply with `cd infra && terraform apply` to reconstitute the stack from scratch (build expected: ~5 minutes).
 
 ## License
 
