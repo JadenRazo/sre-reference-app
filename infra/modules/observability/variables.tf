@@ -48,11 +48,6 @@ variable "ecs_cluster_arn" {
   type        = string
 }
 
-variable "log_group_name" {
-  description = "CloudWatch log group name. Reserved for future Logs Insights widget on the dashboard."
-  type        = string
-}
-
 variable "enable_fis" {
   description = "Whether to create the AWS FIS experiment template and its IAM role. Some account states reject FIS API calls with SubscriptionRequiredException; set to false in that case and use `aws ecs stop-task` directly for the chaos phase. The dashboard, alarms, and SNS resources are unaffected by this flag."
   type        = bool

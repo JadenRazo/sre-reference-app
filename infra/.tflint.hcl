@@ -13,9 +13,3 @@ plugin "aws" {
   version = "0.47.0"
   source  = "github.com/terraform-linters/tflint-ruleset-aws"
 }
-
-# `terraform_required_version` is set in providers.tf at the root.
-# Submodules inherit the root constraint; tflint's per-module check is noisy.
-rule "terraform_required_version" {
-  enabled = false
-}

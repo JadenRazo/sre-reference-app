@@ -31,7 +31,6 @@ module "observability" {
   target_group_arn_suffix = module.service.target_group_arn_suffix
   ecs_cluster_name        = module.service.ecs_cluster_name
   ecs_service_name        = module.service.ecs_service_name
-  log_group_name          = module.service.log_group_name
   ecs_cluster_arn         = module.service.ecs_cluster_arn
 }
 
