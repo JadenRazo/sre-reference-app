@@ -1,0 +1,26 @@
+{
+  "experiment": {
+    "account_id": "569239324174",
+    "region": "us-west-2",
+    "cluster": "sre-app-cluster",
+    "service": "sre-app",
+    "alb_dns": "sre-app-alb-1243008614.us-west-2.elb.amazonaws.com",
+    "injected_error_rate": 0.30,
+    "configured_traffic_rps": 5,
+    "configured_duration_min": 45
+  },
+  "pre_state": {
+    "task_definition": "arn:aws:ecs:us-west-2:569239324174:task-definition/sre-app:5",
+    "fast_burn_alarm": "OK",
+    "slow_burn_alarm": "OK"
+  },
+  "timeline": {
+    "t_pre": "2026-04-29T07:36:10Z",
+    "t_inject": "2026-04-29T07:39:48Z",
+    "t_alarm_fires": "2026-04-29T07:42:53Z",
+    "t_rollback": "2026-04-29T07:46:12Z",
+    "t_all_clear": "2026-04-29T08:46:12Z"
+  },
+  "regression_revision": "arn:aws:ecs:us-west-2:569239324174:task-definition/sre-app:6",
+  "traffic": "total=0 ok=0 err=0 net=0"
+}

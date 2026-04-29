@@ -16,6 +16,12 @@ Two diagrams, one story each. Generated from `diagrams/architecture.py` (mingram
 
 The deploy diagram is the security-relevant one. The blue OIDC path replaces what would otherwise be an `AWS_ACCESS_KEY_ID` in GitHub Secrets; the green action edges show the role's narrowly scoped permissions in flight (`docker push` to one ECR repo, `update-service` to one ECS service, `iam:PassRole` locked to `ecs-tasks.amazonaws.com`).
 
+### 1c. CI quality gates: PR-time gates protect main; main triggers deploy
+
+![CI quality gates](architecture-ci-gates.png)
+
+The CI gates diagram makes one asymmetry visible: the two PR-time workflows (`test.yml` running pytest and `terraform.yml` running fmt/validate/tflint/checkov) hold zero AWS credentials. They run static checks against local code and never touch the deploy role. Only `deploy.yml` on push-to-main exchanges an OIDC token for the `sre-app-gh-deploy` role and reaches AWS at all. A leaked PR-time workflow file cannot deploy.
+
 ## 2. Components
 
 **VPC and networking** (`infra/modules/network/main.tf`). One `10.0.0.0/16` VPC, two `/24` public subnets, two `/24` private subnets, spread across the first two AZs that report `state = available` and `opt-in-not-required`. One IGW for the public subnets, one NAT gateway in `10.0.1.0/24` for private egress. The NAT carries all task egress (ECR pulls, outbound API calls).

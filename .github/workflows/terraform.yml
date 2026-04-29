@@ -1,0 +1,84 @@
+# Static checks for infra/. Runs on every PR touching the IaC and on every
+# push to main. No AWS credentials are used or required: terraform init runs
+# with -backend=false (skips S3/local state) and validate is purely static.
+#
+# Tools, in order of breadth:
+#   1. terraform fmt -check     formatting
+#   2. terraform validate       syntax + types + provider/module wiring
+#   3. tflint                   provider-specific lint (deprecated args, etc.)
+#   4. checkov                  security misconfig (encryption, IAM wildcards,
+#                               public buckets, missing logging, etc.)
+#
+# The deploy.yml workflow remains the only path that assumes the OIDC role.
+
+name: terraform
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.9
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: terraform init (no backend)
+        run: terraform init -backend=false -input=false
+
+      - name: terraform validate
+        run: terraform validate
+
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+
+      - name: tflint init
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: tflint
+        run: tflint --recursive --format=compact
+
+      - name: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra
+          framework: terraform
+          quiet: true
+          # Skips with rationale, not blanket suppression.
+          # CKV_AWS_91:  ALB access logs (would add an S3 bucket; out of scope, see README).
+          # CKV_AWS_150: ALB deletion protection (intentionally off so terraform destroy is one step).
+          # CKV2_AWS_28: WAF on ALB (out of scope; documented in README).
+          # CKV_AWS_103: ALB TLS 1.2 (no TLS listener exists; documented in README).
+          skip_check: CKV_AWS_91,CKV_AWS_150,CKV2_AWS_28,CKV_AWS_103

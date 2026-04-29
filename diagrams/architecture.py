@@ -194,3 +194,49 @@ with Diagram(
     role >> Edge(label="register task def\nupdate-service", color="#2EA043", penwidth="2") >> cluster
     ecr >> Edge(style="dashed", label="image pull", color="#6E7B91") >> new_rev
     cluster >> Edge(label="rollout") >> new_rev
+
+
+# ---------------------------------------------------------------------------
+# Diagram 3: CI quality gates
+# ---------------------------------------------------------------------------
+# Story arc: PR-time gates protect main; main triggers OIDC deploy.
+# The two PR-time workflows (test.yml + terraform.yml) have NO AWS access:
+# pytest runs against local Flask, terraform runs `init -backend=false` and
+# `validate` + `tflint` + `checkov` purely statically. Only deploy.yml on
+# push-to-main exchanges an OIDC token for the sre-app-gh-deploy role and
+# touches AWS at all. This diagram makes that asymmetry visible.
+with Diagram(
+    "sre-reference-app  -  CI quality gates",
+    filename="../docs/architecture-ci-gates",
+    show=False,
+    direction="LR",
+    graph_attr=GRAPH,
+    node_attr=NODE,
+    edge_attr=EDGE,
+):
+    pr = Github("Pull request\nopen / sync")
+
+    with Cluster(
+        "PR gates (no AWS access)",
+        graph_attr={"bgcolor": "#F0F4FA", "style": "rounded", "margin": "16"},
+    ):
+        test_wf = Codebuild("test.yml\npytest 7 tests\non app/**")
+        tf_wf = Codebuild("terraform.yml\nfmt | validate\ntflint | checkov\non infra/**")
+
+    main = Github("main branch\nmerge gated\non green checks")
+
+    with Cluster(
+        "Deploy (OIDC, AWS)",
+        graph_attr={"bgcolor": "#FAF1E8", "style": "rounded", "margin": "16"},
+    ):
+        deploy_wf = Codebuild("deploy.yml\nbuild | push | rollout\npush to main + app/**")
+        deploy_role = IAMRole("sre-app-gh-deploy\nrepo-scoped trust\nPassRole locked\nto ECS")
+        ecs = ElasticContainerService("ECS Fargate\nsre-app-cluster")
+
+    pr >> Edge(label="changes touch app/**", color="#1F6FEB", penwidth="2") >> test_wf
+    pr >> Edge(label="changes touch infra/**", color="#1F6FEB", penwidth="2") >> tf_wf
+    test_wf >> Edge(label="pass", color="#2EA043", penwidth="2") >> main
+    tf_wf >> Edge(label="pass", color="#2EA043", penwidth="2") >> main
+    main >> Edge(label="push to main", color="#1F6FEB", penwidth="2") >> deploy_wf
+    deploy_wf >> Edge(label="OIDC token\nno static keys", color="#1F6FEB", penwidth="3", fontcolor="#1F6FEB") >> deploy_role
+    deploy_role >> Edge(label="update-service", color="#2EA043", penwidth="2") >> ecs

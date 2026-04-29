@@ -1,0 +1,48 @@
+# Runs the app test suite on every PR and on every push to main.
+#
+# Uses pip's built-in actions/setup-python cache (keyed on the dev requirements
+# file's hash) so installs are warm after the first run.
+#
+# This workflow does NOT touch AWS. The deploy.yml workflow remains the only
+# path that assumes the OIDC role.
+
+name: test
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "pyproject.toml"
+      - ".github/workflows/test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "pyproject.toml"
+      - ".github/workflows/test.yml"
+
+# Cancel in-flight runs of the same ref when a newer commit arrives.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: app/requirements-dev.txt
+
+      - name: Install dev dependencies
+        run: pip install -r app/requirements-dev.txt
+
+      - name: Run pytest
+        run: python -m pytest

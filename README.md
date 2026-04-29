@@ -23,6 +23,10 @@ The deploy pipeline: how a `git push` reaches a running task, with no static AWS
 
 ![Deploy pipeline](docs/architecture-deploy.png)
 
+The CI gate shape: PR-time workflows run with no AWS access; only `deploy.yml` on push-to-main exchanges an OIDC token for the deploy role.
+
+![CI quality gates](docs/architecture-ci-gates.png)
+
 Diagrams are generated from `diagrams/architecture.py` (mingrammer/diagrams + AWS official icon set). Regenerate with `cd diagrams && .venv/bin/python architecture.py`. Module-by-module writeup lives in `docs/architecture.md`.
 
 ## SLO and alarm summary
@@ -105,7 +109,12 @@ To enable the OIDC deploy pipeline (Phase 7 setup): the `cicd` module already pr
 app/                       Flask app + Dockerfile
   main.py                  /, /health, /work routes; structured JSON logging; ERROR_RATE env var
   Dockerfile               python:3.12-slim base, HEALTHCHECK on /health, non-root user
-  requirements.txt         flask + gunicorn
+  requirements.txt         flask + gunicorn (runtime)
+  requirements-dev.txt     adds pytest for the test suite
+  tests/test_main.py       pytest suite: 7 tests covering health, error injection, request_id, log shape
+
+scripts/
+  inject-regression.sh     End-to-end automation for the GameDay regression run referenced below
 
 infra/                     Terraform root
   main.tf                  4 module calls (network, service, observability, cicd)
@@ -122,6 +131,9 @@ docs/
   slos.md                  SLO math, burn-rate derivation, verification against live data
   chaos-experiments.md     Phase 6 hypothesis, method, result, findings
   post-mortem-template.md  Template for incident write-ups; runbook section 5 calls into this
+  post-mortem-2026-04-29-injected-regression.md
+                           GameDay-style post-mortem (pre-registered hypothesis,
+                           timeline filled by inject-regression.sh)
 
 runbooks/
   high-latency.md          On-call procedure for 5xx or latency alarms
@@ -130,6 +142,8 @@ screenshots/               Build-day captures referenced from this README
 
 .github/workflows/
   deploy.yml               OIDC-federated deploy: build, push to ECR, register TD, update service
+  test.yml                 pytest on every PR / push to main; no AWS credentials required
+  terraform.yml            fmt + validate + tflint + checkov on PRs touching infra/**
 
 .claude/agents/            Project-scoped subagents that drove the build (terraform-architect, technical-writer, reviewer)
 
@@ -152,6 +166,34 @@ Each phase ended with a reviewer pass and a tagged commit. `PROGRESS.md` carries
 | `phase-5-complete` | Observability + SLO verification | 1347 requests at ~5 req/s, measured error rate 4.83%, both alarms held `OK` |
 | `phase-6-complete` | Chaos via aws ecs stop-task | 2154 requests over 8 minutes, 78-second recovery, 4.46% error rate during chaos vs 4.83% baseline, both alarms held `OK` |
 | `phase-7-complete` | CI/CD via OIDC | Workflow run 25071971120 succeeded in 3m49s; first run failed on missing `ecs:TagResource`, fixed via terraform and rerun |
+| `phase-10-complete` | Quality gates + GameDay run | pytest suite (7 passing), terraform CI (fmt/validate/tflint/checkov), regression-injection automation. GameDay run executed 2026-04-29: ERROR_RATE 0.05->0.30, fast-burn alarm fired at T+3m05s (much faster than the pre-registered 60-70min hypothesis), rolled back at T+6m24s, 1681 reqs / 373 5xx during the window. Filled post-mortem at `docs/post-mortem-2026-04-29-injected-regression.md` |
+
+## Quality gates
+
+Three CI workflows guard the project. None require AWS credentials except the deploy itself.
+
+| Workflow | Triggers on | What it runs |
+|---|---|---|
+| `test.yml` | PRs / pushes touching `app/**` | `pytest` (7 tests covering routes, error injection, `X-Request-ID`, log shape) |
+| `terraform.yml` | PRs / pushes touching `infra/**` | `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, `tflint --recursive`, `checkov` |
+| `deploy.yml` | Push to `main` touching `app/**` | OIDC-assumed deploy: build, push to ECR, register TD, update service, wait stable |
+
+The static infra checks run with no AWS access (`-backend=false`), so secrets are never needed for validation. Only `deploy.yml` assumes the OIDC role.
+
+## GameDay regression experiment
+
+`scripts/inject-regression.sh` automates a full controlled-regression chase: it bumps `ERROR_RATE` from 0.05 to 0.30 on a new task definition revision, waits for service stable, drives traffic, polls the fast-burn alarm until it transitions `OK -> ALARM`, rolls back to the prior revision, then either waits for the alarm to clear or derives `T_ALL_CLEAR` from `T_ROLLBACK + 60 min` (the alarm window length) when invoked with `--skip-all-clear-wait`.
+
+The 2026-04-29 run is documented in `docs/post-mortem-2026-04-29-injected-regression.md`. The headline finding was a hypothesis failure: the pre-registered hypothesis predicted alarm transition at 60-70 minutes after injection (treating CloudWatch's `period = 3600` as a minimum detection latency), but the actual transition happened at T+3m05s because partial-period metric_query evaluation crosses the threshold as soon as the running m1/m2 ratio exceeds it, regardless of how much of the period has elapsed. That gap is exactly what GameDay is for; the post-mortem's section 7 documents both the original hypothesis and the corrected understanding.
+
+```
+cd infra && terraform apply                                       # bring the stack up
+scripts/inject-regression.sh --skip-all-clear-wait                # run the experiment
+# regression-timeline.json + CloudWatch metrics fill the post-mortem
+cd infra && terraform destroy                                     # tear it back down
+```
+
+Total cost for the 2026-04-29 run: ~$0.50 of AWS spend across ~30 minutes of stack uptime.
 
 ## What this does NOT do
 
@@ -188,7 +230,7 @@ Confirm a clean destroy with `aws ecs list-clusters` (returns `[]`) and `aws ec2
 
 ## Status
 
-**Torn down.** The AWS resources were destroyed on 2026-04-28 after Phase 9. The repo, screenshots, and tags remain as the artifact. Re-apply with `cd infra && terraform apply` to reconstitute the stack from scratch (build expected: ~5 minutes).
+**Torn down.** First teardown 2026-04-28 after Phase 9. Re-applied 2026-04-29 to run the Phase 10 GameDay experiment, then torn down again the same day after the post-mortem was written. The repo, screenshots, post-mortem, and tags remain as the artifact. Re-apply with `cd infra && terraform apply` to reconstitute the stack from scratch (build expected: ~5 minutes).
 
 ## License
 
