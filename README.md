@@ -2,6 +2,8 @@
 
 A Flask service deployed to AWS ECS Fargate that survived a controlled task termination in 78 seconds with zero SLO breach (4.46% error rate during chaos vs a 14.4% fast-burn threshold), built end-to-end across 8 phases to show the practices that hold up in real on-call work.
 
+> **Day-2 evolution:** [`sre-landing-zone`](https://github.com/JadenRazo/sre-landing-zone) — same workload, multi-account production posture. Adds AWS Organizations + SCPs, Pilot-Light DR across regions, edge stack (CloudFront/WAF/Cognito), centralized audit, and cross-account auto-stop. SAA-C03 portfolio.
+
 ## What this demonstrates
 
 - ECS Fargate service surviving a controlled task termination in 78 seconds with zero SLO breach. Measured error rate during the chaos run was 4.46%, slightly below the 4.83% steady-state baseline, because the surviving task absorbed traffic and the ALB's 30-second `deregistration_delay` drained the dying task cleanly. Full write-up in `docs/chaos-experiments.md`.
