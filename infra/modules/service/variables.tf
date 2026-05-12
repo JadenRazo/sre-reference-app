@@ -58,3 +58,9 @@ variable "desired_count" {
   type        = number
   default     = 2
 }
+
+variable "cert_arn" {
+  description = "ACM certificate ARN. When set, the ALB listener on port 80 redirects to HTTPS and a port-443 listener is created. Leave null for HTTP-only deployments (dev/demo)."
+  type        = string
+  default     = null
+}

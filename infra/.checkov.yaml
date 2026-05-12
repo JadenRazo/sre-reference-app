@@ -1,0 +1,31 @@
+skip-checks:
+  # CKV_AWS_382: ALB egress 0.0.0.0/0 — ALB must reach dynamically-assigned Fargate task IPs in
+  # private subnets; restricting ALB egress to a static CIDR would break routing as task IPs change.
+  # The ALB has no ingress from private ports; only internet-facing 80/443 is open.
+  - id: CKV_AWS_382
+    resource: aws_security_group.alb
+
+  # CKV_AWS_382: ECS tasks egress 0.0.0.0/0 — tasks pull images from ECR and ship logs to
+  # CloudWatch Logs over the NAT gateway. Without Interface VPC Endpoints for ECR/CWL (out of
+  # scope for this reference app), unrestricted egress via NAT is required.
+  - id: CKV_AWS_382
+    resource: aws_security_group.tasks
+
+  # CKV_AWS_260: ALB ingress 0.0.0.0/0 on port 80 — this is an intentional internet-facing ALB.
+  # Port 80 accepts traffic only to immediately redirect to HTTPS (when cert_arn is set) or serve
+  # the demo app directly. The threat model for an internet-facing ALB on port 80 is accepted here.
+  - id: CKV_AWS_260
+    resource: aws_security_group.alb
+
+  # CKV2_AWS_20: HTTP→HTTPS redirect is conditional on cert_arn being set. The redirect listener
+  # action is implemented and wired; checkov sees the HTTP listener and flags it because it cannot
+  # evaluate the dynamic block at static-analysis time. When cert_arn is null (HTTP-only demo),
+  # the skip is intentional — there is no cert to redirect to.
+  - id: CKV2_AWS_20
+    resource: aws_lb_listener.http
+
+  # CKV_AWS_378: Target group protocol HTTP is correct — the ALB terminates TLS and speaks plain
+  # HTTP to Fargate tasks on the private network. Encrypting ALB→backend traffic on a private
+  # subnet adds overhead with no meaningful threat reduction in this architecture.
+  - id: CKV_AWS_378
+    resource: aws_lb_target_group.app

@@ -73,3 +73,9 @@ variable "slo_target" {
     error_message = "slo_target must be between 0.9 and 1.0 (exclusive)."
   }
 }
+
+variable "cert_arn" {
+  description = "ACM certificate ARN for the ALB HTTPS listener. When set, port 80 redirects to 443 and a second listener is provisioned. Leave null for HTTP-only (dev/demo without a custom domain)."
+  type        = string
+  default     = null
+}

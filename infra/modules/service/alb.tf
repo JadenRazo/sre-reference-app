@@ -4,6 +4,12 @@ resource "aws_lb" "app" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
+
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.id
+    prefix  = var.name_prefix
+    enabled = true
+  }
 }
 
 resource "aws_lb_target_group" "app" {
@@ -32,6 +38,38 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app.arn
   port              = 80
   protocol          = "HTTP"
+
+  default_action {
+    type = var.cert_arn != null ? "redirect" : "forward"
+
+    dynamic "redirect" {
+      for_each = var.cert_arn != null ? [1] : []
+      content {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+
+    dynamic "forward" {
+      for_each = var.cert_arn != null ? [] : [1]
+      content {
+        target_group {
+          arn = aws_lb_target_group.app.arn
+        }
+      }
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count = var.cert_arn != null ? 1 : 0
+
+  load_balancer_arn = aws_lb.app.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.cert_arn
 
   default_action {
     type             = "forward"
