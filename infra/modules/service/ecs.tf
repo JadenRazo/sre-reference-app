@@ -74,5 +74,8 @@ resource "aws_ecs_service" "app" {
     ignore_changes = [task_definition, desired_count]
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http_redirect,
+    aws_lb_listener.http_forward,
+  ]
 }

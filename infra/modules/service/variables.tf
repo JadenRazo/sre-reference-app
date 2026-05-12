@@ -64,3 +64,13 @@ variable "cert_arn" {
   type        = string
   default     = null
 }
+
+variable "vpc_endpoint_security_group_id" {
+  description = "Security group ID of the Interface VPC Endpoints (ECR API, ECR DKR, CloudWatch Logs). Tasks SG egress is scoped to port 443 toward this SG."
+  type        = string
+}
+
+variable "s3_prefix_list_id" {
+  description = "Managed prefix list ID of the S3 Gateway VPC Endpoint. Tasks SG egress is scoped to port 443 toward this prefix list."
+  type        = string
+}

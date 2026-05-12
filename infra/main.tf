@@ -8,16 +8,18 @@ module "network" {
 module "service" {
   source = "./modules/service"
 
-  name_prefix        = var.name_prefix
-  vpc_id             = module.network.vpc_id
-  public_subnet_ids  = module.network.public_subnet_ids
-  private_subnet_ids = module.network.private_subnet_ids
-  container_port     = var.container_port
-  container_image    = var.container_image
-  task_cpu           = var.task_cpu
-  task_memory        = var.task_memory
-  desired_count      = var.desired_count
-  cert_arn           = var.cert_arn
+  name_prefix                    = var.name_prefix
+  vpc_id                         = module.network.vpc_id
+  public_subnet_ids              = module.network.public_subnet_ids
+  private_subnet_ids             = module.network.private_subnet_ids
+  container_port                 = var.container_port
+  container_image                = var.container_image
+  task_cpu                       = var.task_cpu
+  task_memory                    = var.task_memory
+  desired_count                  = var.desired_count
+  cert_arn                       = var.cert_arn
+  vpc_endpoint_security_group_id = module.network.vpc_endpoint_security_group_id
+  s3_prefix_list_id              = module.network.s3_prefix_list_id
 }
 
 module "observability" {

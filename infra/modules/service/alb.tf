@@ -34,31 +34,34 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "http_redirect" {
+  count = var.cert_arn != null ? 1 : 0
+
   load_balancer_arn = aws_lb.app.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
-    type = var.cert_arn != null ? "redirect" : "forward"
+    type = "redirect"
 
-    dynamic "redirect" {
-      for_each = var.cert_arn != null ? [1] : []
-      content {
-        port        = "443"
-        protocol    = "HTTPS"
-        status_code = "HTTP_301"
-      }
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
     }
+  }
+}
 
-    dynamic "forward" {
-      for_each = var.cert_arn != null ? [] : [1]
-      content {
-        target_group {
-          arn = aws_lb_target_group.app.arn
-        }
-      }
-    }
+resource "aws_lb_listener" "http_forward" {
+  count = var.cert_arn == null ? 1 : 0
+
+  load_balancer_arn = aws_lb.app.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
   }
 }
 
