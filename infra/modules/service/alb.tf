@@ -12,6 +12,7 @@ resource "aws_lb" "app" {
   }
 }
 
+# checkov:skip=CKV_AWS_378: ALB terminates TLS and speaks plain HTTP to Fargate tasks on the private network; encrypting ALB-to-backend traffic on a private subnet adds overhead with no meaningful threat reduction.
 resource "aws_lb_target_group" "app" {
   name        = "${var.name_prefix}-tg"
   port        = var.container_port
@@ -52,6 +53,7 @@ resource "aws_lb_listener" "http_redirect" {
   }
 }
 
+# checkov:skip=CKV2_AWS_20: http_forward listener has no TLS redirect because cert_arn is null in HTTP-only deployments — there is no cert to redirect to.
 resource "aws_lb_listener" "http_forward" {
   count = var.cert_arn == null ? 1 : 0
 

@@ -1,3 +1,5 @@
+# checkov:skip=CKV_AWS_382: ALB must reach dynamically-assigned Fargate task IPs in private subnets; restricting to a static CIDR would break routing.
+# checkov:skip=CKV_AWS_260: Intentional internet-facing ALB; port 80 only redirects to HTTPS when cert_arn is set.
 resource "aws_security_group" "alb" {
   name        = "${var.name_prefix}-alb"
   description = "Public ingress to the ALB on port 80."
