@@ -1,5 +1,5 @@
-# checkov:skip=CKV2_AWS_20: ALB has an http_redirect listener (port 80 → 443) when cert_arn is set; when cert_arn is null the app is HTTP-only by design and there is no TLS cert to redirect to.
 resource "aws_lb" "app" {
+  # checkov:skip=CKV2_AWS_20: ALB has an http_redirect listener (port 80 → 443) when cert_arn is set; when cert_arn is null the app is HTTP-only by design and there is no TLS cert to redirect to.
   name                       = "${var.name_prefix}-alb"
   internal                   = false
   load_balancer_type         = "application"
@@ -14,8 +14,8 @@ resource "aws_lb" "app" {
   }
 }
 
-# checkov:skip=CKV_AWS_378: ALB terminates TLS and speaks plain HTTP to Fargate tasks on the private network; encrypting ALB-to-backend traffic on a private subnet adds overhead with no meaningful threat reduction.
 resource "aws_lb_target_group" "app" {
+  # checkov:skip=CKV_AWS_378: ALB terminates TLS and speaks plain HTTP to Fargate tasks on the private network; encrypting ALB-to-backend traffic on a private subnet adds overhead with no meaningful threat reduction.
   name        = "${var.name_prefix}-tg"
   port        = var.container_port
   protocol    = "HTTP"
@@ -55,8 +55,8 @@ resource "aws_lb_listener" "http_redirect" {
   }
 }
 
-# checkov:skip=CKV2_AWS_20: http_forward listener has no TLS redirect because cert_arn is null in HTTP-only deployments — there is no cert to redirect to.
 resource "aws_lb_listener" "http_forward" {
+  # checkov:skip=CKV2_AWS_20: http_forward listener has no TLS redirect because cert_arn is null in HTTP-only deployments — there is no cert to redirect to.
   count = var.cert_arn == null ? 1 : 0
 
   load_balancer_arn = aws_lb.app.arn

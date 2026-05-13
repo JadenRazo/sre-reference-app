@@ -1,9 +1,9 @@
 data "aws_elb_service_account" "current" {}
 
-# checkov:skip=CKV2_AWS_62: Write-only ALB access log sink; no consumer reads from this bucket so event notifications serve no purpose.
-# checkov:skip=CKV_AWS_144: Cross-region replication of access logs is DR-class overhead not warranted for a reference app's log sink.
-# checkov:skip=CKV_AWS_18: This bucket IS the ALB access-log destination; enabling S3 server access logging to itself creates an infinite loop.
 resource "aws_s3_bucket" "alb_logs" {
+  # checkov:skip=CKV2_AWS_62: Write-only ALB access log sink; no consumer reads from this bucket so event notifications serve no purpose.
+  # checkov:skip=CKV_AWS_144: Cross-region replication of access logs is DR-class overhead not warranted for a reference app's log sink.
+  # checkov:skip=CKV_AWS_18: This bucket IS the ALB access-log destination; enabling S3 server access logging to itself creates an infinite loop.
   bucket        = "${var.name_prefix}-alb-logs-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
 }
