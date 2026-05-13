@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "app" {
   name                 = var.name_prefix
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   # force_delete = true lets terraform destroy clean up the repo even when
   # images are still present. Without this, the first destroy fails because
@@ -12,6 +12,11 @@ resource "aws_ecr_repository" "app" {
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.logs.arn
   }
 }
 

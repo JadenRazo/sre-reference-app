@@ -35,6 +35,7 @@ module "observability" {
   ecs_cluster_name        = module.service.ecs_cluster_name
   ecs_service_name        = module.service.ecs_service_name
   ecs_cluster_arn         = module.service.ecs_cluster_arn
+  kms_key_arn             = module.service.kms_logs_key_arn
 }
 
 module "cicd" {
@@ -48,4 +49,5 @@ module "cicd" {
   task_role_arn          = module.service.task_role_arn
   task_execution_arn     = module.service.task_execution_role_arn
   task_definition_family = module.service.task_definition_family
+  app_log_group_arn      = module.service.log_group_arn
 }

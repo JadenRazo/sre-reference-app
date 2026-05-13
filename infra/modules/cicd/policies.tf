@@ -118,17 +118,25 @@ resource "aws_iam_role_policy_attachment" "pass_role" {
 }
 
 # Policy 4: CloudWatch Logs read. Useful for debugging deploy failures from
-# within the GH Actions workflow. CloudWatch Logs IAM does not support
-# scoping these read actions to a specific log group reliably across all
-# regions; account-wide read is the documented pattern.
+# within the GH Actions workflow. GetLogEvents and DescribeLogStreams are
+# scoped to the specific app log group; DescribeLogGroups requires "*" because
+# its IAM resource dimension is the log group prefix, not ARN.
 data "aws_iam_policy_document" "logs_read" {
   statement {
-    sid = "LogsRead"
+    sid = "LogsReadScoped"
     actions = [
       "logs:GetLogEvents",
       "logs:DescribeLogStreams",
-      "logs:DescribeLogGroups",
     ]
+    resources = [
+      var.app_log_group_arn,
+      "${var.app_log_group_arn}:*",
+    ]
+  }
+
+  statement {
+    sid       = "LogsDescribeGroups"
+    actions   = ["logs:DescribeLogGroups"]
     resources = ["*"]
   }
 }

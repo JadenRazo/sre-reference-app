@@ -48,7 +48,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.this.id
   cidr_block              = local.public_subnets[count.index].cidr
   availability_zone       = local.azs[local.public_subnets[count.index].az_index]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "${var.name_prefix}-public-${local.azs[local.public_subnets[count.index].az_index]}"
@@ -141,7 +141,7 @@ resource "aws_default_security_group" "this" {
 
 resource "aws_cloudwatch_log_group" "flow_logs" {
   name              = "/vpc/${var.name_prefix}/flow-logs"
-  retention_in_days = 14
+  retention_in_days = 365
   kms_key_id        = aws_kms_key.flow_logs.arn
 }
 

@@ -67,3 +67,13 @@ output "task_execution_role_arn" {
   description = "ECS task execution role ARN."
   value       = aws_iam_role.task_execution.arn
 }
+
+output "log_group_arn" {
+  description = "CloudWatch log group ARN. Used to scope IAM read policies to this specific log group."
+  value       = aws_cloudwatch_log_group.app.arn
+}
+
+output "kms_logs_key_arn" {
+  description = "KMS CMK ARN used to encrypt the ECS app log group. Passed to other modules that need to share the key (e.g. SNS, ECR)."
+  value       = aws_kms_key.logs.arn
+}

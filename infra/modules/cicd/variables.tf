@@ -41,3 +41,8 @@ variable "task_definition_family" {
   description = "ECS task definition family. Reserved for future scoping of RegisterTaskDefinition (currently unscopable in IAM)."
   type        = string
 }
+
+variable "app_log_group_arn" {
+  description = "CloudWatch log group ARN for the ECS app. Scopes the logs-read policy to this specific log group instead of wildcard resource."
+  type        = string
+}

@@ -53,3 +53,8 @@ variable "enable_fis" {
   type        = bool
   default     = true
 }
+
+variable "kms_key_arn" {
+  description = "KMS CMK ARN used to encrypt the SNS topic at rest (CKV_AWS_26). Passed in from the service module's shared logs CMK."
+  type        = string
+}

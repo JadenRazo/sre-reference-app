@@ -1,9 +1,11 @@
+# checkov:skip=CKV2_AWS_20: ALB has an http_redirect listener (port 80 → 443) when cert_arn is set; when cert_arn is null the app is HTTP-only by design and there is no TLS cert to redirect to.
 resource "aws_lb" "app" {
-  name               = "${var.name_prefix}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = var.public_subnet_ids
+  name                       = "${var.name_prefix}-alb"
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = var.public_subnet_ids
+  drop_invalid_header_fields = true
 
   access_logs {
     bucket  = aws_s3_bucket.alb_logs.id

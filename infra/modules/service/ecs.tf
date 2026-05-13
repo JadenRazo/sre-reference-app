@@ -27,6 +27,7 @@ resource "aws_ecs_task_definition" "app" {
           protocol      = "tcp"
         }
       ]
+      readonlyRootFilesystem = true
       logConfiguration = {
         logDriver = "awslogs"
         options = {

@@ -1,5 +1,8 @@
 data "aws_elb_service_account" "current" {}
 
+# checkov:skip=CKV2_AWS_62: Write-only ALB access log sink; no consumer reads from this bucket so event notifications serve no purpose.
+# checkov:skip=CKV_AWS_144: Cross-region replication of access logs is DR-class overhead not warranted for a reference app's log sink.
+# checkov:skip=CKV_AWS_18: This bucket IS the ALB access-log destination; enabling S3 server access logging to itself creates an infinite loop.
 resource "aws_s3_bucket" "alb_logs" {
   bucket        = "${var.name_prefix}-alb-logs-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
@@ -19,7 +22,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.logs.arn
     }
   }
 }
@@ -41,6 +45,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
 
     expiration {
       days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 }
