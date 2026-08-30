@@ -113,11 +113,11 @@ One row per action. Single owner role. Single deadline. Track status until the p
 
 | Action | Owner role | Due | Status |
 |---|---|---|---|
-| Add CloudWatch alarm on `TargetResponseTime` p99 > 100ms for 5 min; route to the burn-rate SNS topic | terraform-architect | 2026-05-12 | Open |
-| Write runbook "ECS task terminated unexpectedly" covering diagnosis steps used here | technical-writer | 2026-05-05 | Open |
+| Add CloudWatch alarm on `TargetResponseTime` p99 > 100ms for 5 min; route to the burn-rate SNS topic | Infrastructure owner | 2026-05-12 | Open |
+| Write runbook "ECS task terminated unexpectedly" covering diagnosis steps used here | Service owner | 2026-05-05 | Open |
 | Add chaos-experiment pre-approval checklist to `docs/chaos-experiments.md` (peer review, runbook, rollback plan) | SRE on-call rotation | 2026-05-05 | Open |
 | Follow-up experiment: terminate one task with the survivor at 70% CPU (degraded-mode load test) | SRE on-call rotation | 2026-05-26 | Open |
-| Document the FIS-vs-stop-task substitution in the chaos plan up front, not after the fact | technical-writer | 2026-05-05 | Done |
+| Document the FIS-vs-stop-task substitution in the chaos plan up front, not after the fact | Service owner | 2026-05-05 | Done |
 
 ## Glossary and links
 

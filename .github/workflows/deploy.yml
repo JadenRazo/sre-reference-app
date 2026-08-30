@@ -15,12 +15,12 @@
 name: deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - ".github/workflows/deploy.yml"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type deploy-lab after confirming the ECS lab exists and the OIDC role resolves"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -37,14 +37,16 @@ env:
 
 jobs:
   deploy:
+    if: inputs.confirmation == 'deploy-lab'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    environment: sre-reference-app-lab
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -54,7 +56,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
 
       - name: Build and push container image
         id: image
@@ -65,10 +67,8 @@ jobs:
           IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker build \
             --tag "$IMAGE" \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
             ./app
           docker push "$IMAGE"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
       - name: Render new task definition revision

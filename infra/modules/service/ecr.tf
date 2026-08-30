@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "app" {
   name                 = var.name_prefix
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   # force_delete = true lets terraform destroy clean up the repo even when
   # images are still present. Without this, the first destroy fails because
@@ -12,6 +12,12 @@ resource "aws_ecr_repository" "app" {
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  # ECR encrypts every image at rest. This cost-bounded lab uses the AWS-owned
+  # AES-256 key; the customer-managed KMS exception is documented separately.
+  encryption_configuration {
+    encryption_type = "AES256"
   }
 }
 

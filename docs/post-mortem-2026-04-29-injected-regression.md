@@ -288,10 +288,10 @@ discoveries.
 
 | Action | Owner role | Due | Status |
 |---|---|---|---|
-| Update `docs/slos.md` section 3 to clarify that the 1-hour metric window is a smoothing horizon, not a minimum detection latency. Document the dependency on prior bucket state | technical-writer | 2026-05-06 | Open |
-| Add CloudWatch alarm on `TargetResponseTime` p99 above 200 ms for 5 minutes; route to the burn-rate SNS topic | terraform-architect | 2026-05-13 | Open |
-| Add a "fast 5xx surge" alarm: `HTTPCode_Target_5XX_Count > 30 over 5 min`, ticket-only severity (not page). Bridges the dashboard / alarm gap surfaced in the original section-7 hypothesis | terraform-architect | 2026-05-13 | Open |
-| Add a horizontal threshold annotation at 0.144 to the error-ratio dashboard widget so the dashboard is self-explanatory | terraform-architect | 2026-05-13 | Open |
+| Update `docs/slos.md` section 3 to clarify that the 1-hour metric window is a smoothing horizon, not a minimum detection latency. Document the dependency on prior bucket state | Service owner | 2026-05-06 | Open |
+| Add CloudWatch alarm on `TargetResponseTime` p99 above 200 ms for 5 minutes; route to the burn-rate SNS topic | Infrastructure owner | 2026-05-13 | Open |
+| Add a "fast 5xx surge" alarm: `HTTPCode_Target_5XX_Count > 30 over 5 min`, ticket-only severity (not page). Bridges the dashboard / alarm gap surfaced in the original section-7 hypothesis | Infrastructure owner | 2026-05-13 | Open |
+| Add a horizontal threshold annotation at 0.144 to the error-ratio dashboard widget so the dashboard is self-explanatory | Infrastructure owner | 2026-05-13 | Open |
 | Fix the traffic-generator counter loss in `scripts/inject-regression.sh`: `trap` on EXIT to flush the counter file regardless of exit path | devops-pipeline | 2026-05-06 | Done (shipped in same commit as this post-mortem) |
 | Add a `gh workflow run rollback.yml` workflow that takes a target revision argument so on-call can roll back without local AWS credentials | devops-pipeline | 2026-05-13 | Open |
 | Re-run this experiment with `--error-rate 0.10` against a 30-minute pre-warm of baseline traffic. The pre-warm exercises the "high baseline traffic in bucket at injection" case and tests whether detection latency stretches toward the upper bound | SRE on-call rotation | 2026-05-20 | Open |

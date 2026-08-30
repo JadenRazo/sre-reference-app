@@ -1,5 +1,6 @@
 resource "aws_sns_topic" "slo_alerts" {
-  name = "${var.name_prefix}-slo-alerts"
+  name              = "${var.name_prefix}-slo-alerts"
+  kms_master_key_id = "alias/aws/sns"
 }
 
 # Email subscriptions stay in pending_confirmation until the recipient clicks
