@@ -143,21 +143,16 @@ runbooks/
 screenshots/               Build-day captures referenced from this README
 
 .github/workflows/
-  deploy.yml               OIDC-federated deploy: build, push to ECR, register TD, update service
+  deploy.yml               Manual OIDC lab deploy; never runs on a push
   test.yml                 pytest on every PR / push to main; no AWS credentials required
   terraform.yml            fmt + validate + tflint + checkov on PRs touching infra/**
 
-.claude/agents/            Project-scoped subagents that drove the build (terraform-architect, technical-writer, reviewer)
-
-PLAN.md                    Phase plan and operating rules
-PROGRESS.md                Phase log with timestamps
-LINKEDIN.md                Build-log entries and post drafts
-HUMAN_TASKS.md             Manual checkpoints queued for the human
+docs/security-baseline.md  Accepted lab exceptions and production requirements
 ```
 
 ## Build phases
 
-Each phase ended with a reviewer pass and a tagged commit. `PROGRESS.md` carries the full timestamped log; the table below is the short version.
+Each phase ended with a reviewer pass and a tagged commit. The table below is the concise evidence log.
 
 | Tag | Phase | What was verified |
 |---|---|---|
@@ -172,15 +167,15 @@ Each phase ended with a reviewer pass and a tagged commit. `PROGRESS.md` carries
 
 ## Quality gates
 
-Three CI workflows guard the project. None require AWS credentials except the deploy itself.
+Two credential-free CI workflows guard changes. A separate deploy workflow is manual-only because the lab is torn down.
 
 | Workflow | Triggers on | What it runs |
 |---|---|---|
 | `test.yml` | PRs / pushes touching `app/**` | `pytest` (7 tests covering routes, error injection, `X-Request-ID`, log shape) |
 | `terraform.yml` | PRs / pushes touching `infra/**` | `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`, `tflint --recursive`, `checkov` |
-| `deploy.yml` | Push to `main` touching `app/**` | OIDC-assumed deploy: build, push to ECR, register TD, update service, wait stable |
+| `deploy.yml` | Manual dispatch with `deploy-lab` confirmation | OIDC-assumed deploy: build an immutable SHA tag, push to ECR, register TD, update service, wait stable |
 
-The static infra checks run with no AWS access (`-backend=false`), so secrets are never needed for validation. Only `deploy.yml` assumes the OIDC role.
+The static infra checks run with no AWS access (`-backend=false`), so secrets are never needed for validation. Only the manual `deploy.yml` assumes the OIDC role. Third-party Actions are pinned to immutable commit SHAs; the version comments remain readable for review and automated updates.
 
 ## GameDay regression experiment
 
@@ -207,6 +202,7 @@ Honest list of out-of-scope items so the architecture is not misread:
 - No real data persistence or PII. The app is stateless. There is no database, no Redis, no secrets manager wiring beyond what the OIDC role itself uses.
 - No AWS FIS. The Phase 6 chaos was substituted with `aws ecs stop-task` because the AWS account returned `SubscriptionRequiredException` on the FIS API. The FIS template lives behind `var.enable_fis = false`. See `docs/chaos-experiments.md` for the rationale.
 - No latency alarm. The dashboard surfaces `TargetResponseTime` p99, but no CloudWatch alarm currently fires on slow responses without 5xx. Listed as a follow-up in `docs/chaos-experiments.md`.
+- This is a cost-bounded lab baseline, not a production security profile. The exact Checkov exceptions, their rationale, and the controls required before production are in [`docs/security-baseline.md`](docs/security-baseline.md).
 
 ## Cost
 
@@ -236,7 +232,7 @@ Confirm a clean destroy with `aws ecs list-clusters` (returns `[]`) and `aws ec2
 
 ## License
 
-MIT.
+[MIT](LICENSE).
 
 ## References
 

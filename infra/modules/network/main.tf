@@ -34,6 +34,19 @@ resource "aws_vpc" "this" {
   }
 }
 
+# The VPC default security group is not used. Managing it explicitly prevents
+# resources added later from inheriting its permissive same-group rules.
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.this.id
+
+  ingress = []
+  egress  = []
+
+  tags = {
+    Name = "${var.name_prefix}-default-deny"
+  }
+}
+
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
@@ -45,10 +58,12 @@ resource "aws_internet_gateway" "this" {
 resource "aws_subnet" "public" {
   count = length(local.public_subnets)
 
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = local.public_subnets[count.index].cidr
-  availability_zone       = local.azs[local.public_subnets[count.index].az_index]
-  map_public_ip_on_launch = true
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = local.public_subnets[count.index].cidr
+  availability_zone = local.azs[local.public_subnets[count.index].az_index]
+  # Internet-facing ALBs and NAT gateways obtain addresses explicitly; other
+  # resources placed in this subnet should not receive a public IP by default.
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "${var.name_prefix}-public-${local.azs[local.public_subnets[count.index].az_index]}"

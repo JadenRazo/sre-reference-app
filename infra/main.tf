@@ -10,6 +10,7 @@ module "service" {
 
   name_prefix        = var.name_prefix
   vpc_id             = module.network.vpc_id
+  vpc_cidr           = module.network.vpc_cidr_block
   public_subnet_ids  = module.network.public_subnet_ids
   private_subnet_ids = module.network.private_subnet_ids
   container_port     = var.container_port

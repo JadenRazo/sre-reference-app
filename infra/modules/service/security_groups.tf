@@ -12,11 +12,11 @@ resource "aws_security_group" "alb" {
   }
 
   egress {
-    description = "All outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Application traffic to ECS tasks only"
+    from_port       = var.container_port
+    to_port         = var.container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.tasks.id]
   }
 }
 
@@ -26,11 +26,27 @@ resource "aws_security_group" "tasks" {
   vpc_id      = var.vpc_id
 
   egress {
-    description = "All outbound (ECR image pulls, log shipping, etc.)"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "HTTPS for ECR image pulls and CloudWatch log delivery"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "DNS over UDP to the VPC resolver"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    description = "DNS over TCP to the VPC resolver"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
   }
 }
 

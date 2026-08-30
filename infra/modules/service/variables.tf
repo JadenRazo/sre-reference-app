@@ -12,6 +12,11 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "vpc_cidr" {
+  description = "VPC CIDR used to scope ECS task DNS egress."
+  type        = string
+}
+
 variable "public_subnet_ids" {
   description = "Public subnet IDs (one per AZ) where the internet-facing ALB attaches."
   type        = list(string)

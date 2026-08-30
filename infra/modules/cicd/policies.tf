@@ -116,29 +116,3 @@ resource "aws_iam_role_policy_attachment" "pass_role" {
   role       = aws_iam_role.deploy.name
   policy_arn = aws_iam_policy.pass_role.arn
 }
-
-# Policy 4: CloudWatch Logs read. Useful for debugging deploy failures from
-# within the GH Actions workflow. CloudWatch Logs IAM does not support
-# scoping these read actions to a specific log group reliably across all
-# regions; account-wide read is the documented pattern.
-data "aws_iam_policy_document" "logs_read" {
-  statement {
-    sid = "LogsRead"
-    actions = [
-      "logs:GetLogEvents",
-      "logs:DescribeLogStreams",
-      "logs:DescribeLogGroups",
-    ]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_policy" "logs_read" {
-  name   = "${var.name_prefix}-gh-deploy-logs"
-  policy = data.aws_iam_policy_document.logs_read.json
-}
-
-resource "aws_iam_role_policy_attachment" "logs_read" {
-  role       = aws_iam_role.deploy.name
-  policy_arn = aws_iam_policy.logs_read.arn
-}
