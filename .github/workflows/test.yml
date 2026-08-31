@@ -10,16 +10,8 @@ name: test
 
 on:
   pull_request:
-    paths:
-      - "app/**"
-      - "pyproject.toml"
-      - ".github/workflows/test.yml"
   push:
     branches: [main]
-    paths:
-      - "app/**"
-      - "pyproject.toml"
-      - ".github/workflows/test.yml"
 
 # Cancel in-flight runs of the same ref when a newer commit arrives.
 concurrency:

@@ -1,6 +1,7 @@
-# Static checks for infra/. Runs on every PR touching the IaC and on every
-# push to main. No AWS credentials are used or required: terraform init runs
-# with -backend=false (skips S3/local state) and validate is purely static.
+# Static checks for infra/. Runs on every PR and every push to main so the
+# resulting check can be required without leaving documentation-only changes
+# permanently pending. No AWS credentials are used or required: terraform init
+# runs with -backend=false (skips S3/local state) and validate is purely static.
 #
 # Tools, in order of breadth:
 #   1. terraform fmt -check     formatting
@@ -15,14 +16,8 @@ name: terraform
 
 on:
   pull_request:
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform.yml"
   push:
     branches: [main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform.yml"
 
 concurrency:
   group: terraform-${{ github.ref }}
